@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 
 function formatDuration(s) {
@@ -10,22 +10,130 @@ function formatDuration(s) {
 export default function AudioRecorder({ onBlob, disabled, autoStart = false }) {
   const { isRecording, error, duration, start, stop } = useAudioRecorder()
 
-  // Démarre automatiquement en mode quick-dump
+  // État de révision
+  const [reviewBlob, setReviewBlob] = useState(null)
+  const [reviewUrl, setReviewUrl] = useState(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playProgress, setPlayProgress] = useState(0)
+  const [playDuration, setPlayDuration] = useState(0)
+  const audioRef = useRef(null)
+
   useEffect(() => {
-    if (autoStart && !disabled) {
-      start()
-    }
+    if (autoStart && !disabled) start()
   }, [autoStart]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleToggle() {
-    if (isRecording) {
-      const blob = await stop()
-      if (blob) onBlob(blob)
+  // Nettoyage de l'URL objet à la destruction
+  useEffect(() => {
+    return () => { if (reviewUrl) URL.revokeObjectURL(reviewUrl) }
+  }, [reviewUrl])
+
+  async function handleStop() {
+    const blob = await stop()
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    setReviewBlob(blob)
+    setReviewUrl(url)
+    setPlayProgress(0)
+    setIsPlaying(false)
+  }
+
+  function handleTogglePlay() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (isPlaying) {
+      audio.pause()
     } else {
-      await start()
+      audio.play()
     }
   }
 
+  function handleSend() {
+    onBlob(reviewBlob)
+    resetReview()
+  }
+
+  function handleReRecord() {
+    resetReview()
+    start()
+  }
+
+  function resetReview() {
+    if (reviewUrl) URL.revokeObjectURL(reviewUrl)
+    setReviewBlob(null)
+    setReviewUrl(null)
+    setIsPlaying(false)
+    setPlayProgress(0)
+    setPlayDuration(0)
+  }
+
+  // ── État révision ────────────────────────────────────────────────────────────
+  if (reviewBlob) {
+    const progressPct = playDuration > 0 ? (playProgress / playDuration) * 100 : 0
+
+    return (
+      <div className="w-full space-y-5">
+        <div className="text-center space-y-1">
+          <p className="text-slate-500 text-sm font-semibold uppercase tracking-widest">Écoute avant d'envoyer</p>
+          <p className="text-slate-400 text-xs font-medium">{formatDuration(Math.round(playDuration || duration))}</p>
+        </div>
+
+        {/* Lecteur audio */}
+        <audio
+          ref={audioRef}
+          src={reviewUrl}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => { setIsPlaying(false); setPlayProgress(0) }}
+          onTimeUpdate={(e) => setPlayProgress(e.target.currentTime)}
+          onLoadedMetadata={(e) => setPlayDuration(e.target.duration)}
+        />
+
+        {/* Barre de progression */}
+        <div
+          className="w-full h-2 bg-slate-100 rounded-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
+            const audio = audioRef.current
+            if (!audio || !playDuration) return
+            const rect = e.currentTarget.getBoundingClientRect()
+            audio.currentTime = ((e.clientX - rect.left) / rect.width) * playDuration
+          }}
+        >
+          <div
+            className="h-full bg-blue-500 rounded-full transition-all duration-100"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+
+        {/* Bouton play/pause centré */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleTogglePlay}
+            className="w-16 h-16 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-2xl transition-all shadow-sm"
+          >
+            {isPlaying ? '⏸' : '▶️'}
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleReRecord}
+            className="flex-1 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition-all"
+          >
+            🔄 Réenregistrer
+          </button>
+          <button
+            onClick={handleSend}
+            className="flex-1 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all"
+          >
+            Envoyer ✓
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── État enregistrement / idle ───────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center gap-10">
       <div className="relative flex items-center justify-center">
@@ -38,7 +146,7 @@ export default function AudioRecorder({ onBlob, disabled, autoStart = false }) {
         )}
 
         <button
-          onClick={handleToggle}
+          onClick={isRecording ? handleStop : start}
           disabled={disabled}
           className={`
             relative w-44 h-44 rounded-full font-bold text-white
