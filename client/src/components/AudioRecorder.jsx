@@ -74,7 +74,7 @@ export default function AudioRecorder({ onBlob, disabled, autoStart = false }) {
       <div className="w-full space-y-5">
         <div className="text-center space-y-1">
           <p className="text-slate-500 text-sm font-semibold uppercase tracking-widest">Écoute avant d'envoyer</p>
-          <p className="text-slate-400 text-xs font-medium">{formatDuration(Math.round(playDuration || duration))}</p>
+          <p className="text-slate-400 text-xs font-medium">{formatDuration(duration)}</p>
         </div>
 
         {/* Lecteur audio */}
