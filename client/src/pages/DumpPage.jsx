@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AudioRecorder from '../components/AudioRecorder'
 import { api } from '../hooks/useApi'
 
@@ -15,18 +15,27 @@ export default function DumpPage() {
   const [mode, setMode] = useState('audio')
   const [text, setText] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [sessionId, setSessionId] = useState(null)
   const [sessionStatus, setSessionStatus] = useState(null)
   const [error, setError] = useState(null)
   const pollRef = useRef(null)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isQuickDump = searchParams.get('quick-dump') === '1'
 
   useEffect(() => {
     return () => clearInterval(pollRef.current)
   }, [])
 
+  // Demander la permission micro dès le chargement en mode quick-dump
+  useEffect(() => {
+    if (isQuickDump) {
+      navigator.mediaDevices?.getUserMedia({ audio: true })
+        .then((stream) => stream.getTracks().forEach((t) => t.stop()))
+        .catch(() => {})
+    }
+  }, [isQuickDump])
+
   function startPolling(id) {
-    setSessionId(id)
     pollRef.current = setInterval(async () => {
       try {
         const session = await api.get(`/dump/sessions/${id}`)
@@ -76,16 +85,48 @@ export default function DumpPage() {
 
   const isProcessing = uploading || (sessionStatus && !['ready', 'error'].includes(sessionStatus))
 
+  // ── Mode Quick Dump ──────────────────────────────────────────────────────────
+  if (isQuickDump) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-5 gap-8">
+        <div className="text-center space-y-1">
+          <h1 className="text-3xl font-black text-navy-900 tracking-tight">Brain Dump</h1>
+          <p className="text-slate-400 text-sm font-medium">Parle. L'IA s'occupe du reste.</p>
+        </div>
+
+        <AudioRecorder onBlob={handleBlob} disabled={isProcessing} autoStart />
+
+        {sessionStatus && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
+            sessionStatus === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-600'
+              : 'bg-blue-50 border-blue-100 text-blue-700'
+          }`}>
+            {isProcessing && (
+              <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            )}
+            <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
+            {error}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // ── Mode normal ──────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] px-5 pt-10 pb-8 gap-8">
 
-      {/* Header */}
       <div className="text-center space-y-1">
         <h1 className="text-4xl font-black text-navy-900 tracking-tight">Brain Dump</h1>
         <p className="text-slate-500 font-medium">Vide ta tête. L'IA s'occupe du reste.</p>
       </div>
 
-      {/* Mode toggle */}
       <div className="flex bg-slate-100 rounded-2xl p-1.5 gap-1.5">
         {['audio', 'text'].map((m) => (
           <button
@@ -103,7 +144,6 @@ export default function DumpPage() {
         ))}
       </div>
 
-      {/* Input area */}
       <div className={`flex-1 flex flex-col gap-6 ${mode === 'audio' ? 'items-center justify-center' : ''}`}>
         {mode === 'audio' ? (
           <AudioRecorder onBlob={handleBlob} disabled={isProcessing} />
@@ -127,7 +167,6 @@ export default function DumpPage() {
         )}
       </div>
 
-      {/* Status */}
       {sessionStatus && (
         <div className={`flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
           sessionStatus === 'error'
