@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 
 function formatDuration(s) {
@@ -6,8 +7,15 @@ function formatDuration(s) {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export default function AudioRecorder({ onBlob, disabled }) {
+export default function AudioRecorder({ onBlob, disabled, autoStart = false }) {
   const { isRecording, error, duration, start, stop } = useAudioRecorder()
+
+  // Démarre automatiquement en mode quick-dump
+  useEffect(() => {
+    if (autoStart && !disabled) {
+      start()
+    }
+  }, [autoStart]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleToggle() {
     if (isRecording) {
