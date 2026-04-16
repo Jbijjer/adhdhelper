@@ -88,39 +88,41 @@ export default function DumpPage() {
   // ── Mode Quick Dump ──────────────────────────────────────────────────────────
   if (isQuickDump) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-5 gap-8">
-        <div className="text-center space-y-1">
+      <div className="flex flex-col h-[calc(100vh-4rem)] px-5 pt-8 pb-4">
+        <div className="text-center space-y-1 mb-6">
           <h1 className="text-3xl font-black text-navy-900 tracking-tight">Brain Dump</h1>
           <p className="text-slate-400 text-sm font-medium">Parle. L'IA s'occupe du reste.</p>
         </div>
 
-        <AudioRecorder onBlob={handleBlob} disabled={isProcessing} autoStart />
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-0">
+          <AudioRecorder onBlob={handleBlob} disabled={isProcessing} autoStart />
 
-        {sessionStatus && (
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
-            sessionStatus === 'error'
-              ? 'bg-rose-50 border-rose-200 text-rose-600'
-              : 'bg-blue-50 border-blue-100 text-blue-700'
-          }`}>
-            {isProcessing && (
-              <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-            )}
-            <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
-          </div>
-        )}
+          {sessionStatus && (
+            <div className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
+              sessionStatus === 'error'
+                ? 'bg-rose-50 border-rose-200 text-rose-600'
+                : 'bg-blue-50 border-blue-100 text-blue-700'
+            }`}>
+              {isProcessing && (
+                <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              )}
+              <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
+            </div>
+          )}
 
-        {error && (
-          <p className="text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="w-full text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
+              {error}
+            </p>
+          )}
+        </div>
       </div>
     )
   }
 
   // ── Mode normal ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] px-5 pt-10 pb-8 gap-8">
+    <div className="flex flex-col h-[calc(100vh-4rem)] px-5 pt-8 pb-4 gap-5">
 
       <div className="text-center space-y-1">
         <h1 className="text-4xl font-black text-navy-900 tracking-tight">Brain Dump</h1>
@@ -144,9 +146,30 @@ export default function DumpPage() {
         ))}
       </div>
 
-      <div className={`flex-1 flex flex-col gap-6 ${mode === 'audio' ? 'items-center justify-center' : ''}`}>
+      <div className={`flex-1 flex flex-col min-h-0 gap-5 ${mode === 'audio' ? 'items-center justify-center' : ''}`}>
         {mode === 'audio' ? (
-          <AudioRecorder onBlob={handleBlob} disabled={isProcessing} />
+          <>
+            <AudioRecorder onBlob={handleBlob} disabled={isProcessing} />
+
+            {sessionStatus && (
+              <div className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
+                sessionStatus === 'error'
+                  ? 'bg-rose-50 border-rose-200 text-rose-600'
+                  : 'bg-blue-50 border-blue-100 text-blue-700'
+              }`}>
+                {isProcessing && (
+                  <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                )}
+                <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
+              </div>
+            )}
+
+            {error && (
+              <p className="w-full text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
+                {error}
+              </p>
+            )}
+          </>
         ) : (
           <div className="w-full space-y-3">
             <textarea
@@ -163,28 +186,28 @@ export default function DumpPage() {
             >
               Envoyer
             </button>
+
+            {sessionStatus && (
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
+                sessionStatus === 'error'
+                  ? 'bg-rose-50 border-rose-200 text-rose-600'
+                  : 'bg-blue-50 border-blue-100 text-blue-700'
+              }`}>
+                {isProcessing && (
+                  <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                )}
+                <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
+              </div>
+            )}
+
+            {error && (
+              <p className="text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
+                {error}
+              </p>
+            )}
           </div>
         )}
       </div>
-
-      {sessionStatus && (
-        <div className={`flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border font-semibold text-sm ${
-          sessionStatus === 'error'
-            ? 'bg-rose-50 border-rose-200 text-rose-600'
-            : 'bg-blue-50 border-blue-100 text-blue-700'
-        }`}>
-          {isProcessing && (
-            <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          )}
-          <span>{STATUS_MESSAGES[sessionStatus] || sessionStatus}</span>
-        </div>
-      )}
-
-      {error && (
-        <p className="text-rose-600 text-center bg-rose-50 border border-rose-200 rounded-2xl p-4 font-medium text-sm">
-          {error}
-        </p>
-      )}
     </div>
   )
 }
