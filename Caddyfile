@@ -1,0 +1,4 @@
+jbijjer-desktop.mammoth-mine.ts.net {
+  tls /certs/adhdhelper.crt /certs/adhdhelper.key
+  reverse_proxy adhdhelper:3000
+}
